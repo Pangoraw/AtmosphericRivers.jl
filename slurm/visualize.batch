@@ -1,0 +1,10 @@
+#!/bin/bash
+#SBATCH --job-name=ar-visualize
+#SBATCH --partition=gpudev
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=12G
+#SBATCH --time=04:00:00
+#SBATCH --output=slurm/%x-%j.log
+
+cd "$SLURM_SUBMIT_DIR"
+~/.juliaup/bin/julia --startup-file=no --project=. visualize_era5.jl

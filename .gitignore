@@ -1,0 +1,6 @@
+era5/
+runs/
+*.jld2
+*.mp4
+*.png
+slurm/*.log

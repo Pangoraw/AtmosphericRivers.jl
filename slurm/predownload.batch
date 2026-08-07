@@ -1,0 +1,11 @@
+#!/bin/bash
+#SBATCH --job-name=ar-predownload
+#SBATCH --partition=gpudev
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=12G
+#SBATCH --time=12:00:00
+#SBATCH --output=slurm/%x-%j.log
+
+# Fetch all ERA5 files up front on a cheap node, so GPU jobs never wait on the CDS queue.
+cd "$SLURM_SUBMIT_DIR"
+~/.juliaup/bin/julia --startup-file=no --project=. predownload.jl

@@ -1,0 +1,12 @@
+#!/bin/bash
+#SBATCH --job-name=ar-downscale
+#SBATCH --partition=gpua100largex4
+#SBATCH --gpus=1
+#SBATCH --cpus-per-task=6
+#SBATCH --mem=120G
+#SBATCH --time=24:00:00
+#SBATCH --output=slurm/%x-%j.log
+
+# Smoke test first: sbatch --export=ALL,AR_SMOKE=1 slurm/downscale.batch
+cd "$SLURM_SUBMIT_DIR"
+~/.juliaup/bin/julia --startup-file=no --project=. downscale.jl
