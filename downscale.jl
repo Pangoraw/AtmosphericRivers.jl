@@ -111,6 +111,7 @@ nest = nested_atmosphere_model(grid, dataset;
                                terrain_blend_length,
                                relaxation_rate = 1/300,
                                relaxation_width = relax_width,
+                               parent_time_indices_in_memory = 4,   ## stream the parent instead of holding every date
                                momentum_advection,
                                scalar_advection)
 
