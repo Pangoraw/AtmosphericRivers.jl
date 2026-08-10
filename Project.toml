@@ -15,10 +15,10 @@ RRTMGP = "a01a1ee8-cea4-48fc-987c-fc7878d79da1"
 
 [sources]
 NumericalEarth = {path = "/home/greg_aeolus_earth/NumericalEarth.jl"}
-Breeze = {url = "https://github.com/NumericalEarth/Breeze.jl.git", rev = "glw/rrtmgp-nested-integration"}
+Breeze = {url = "https://github.com/NumericalEarth/Breeze.jl.git", rev = "main"}
 
 [compat]
-Breeze = "0.7.3"
+Breeze = "0.8"
 CUDA = "6"
 CairoMakie = "0.15"
 CopernicusClimateDataStore = "0.2"
