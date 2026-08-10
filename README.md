@@ -44,9 +44,9 @@ sbatch slurm/downscale.batch                         # script 2: the 72 h hindca
 Requires CDS credentials (`~/.cdsapirc`, mirrored to `~/.config/era5cli/cds_key.txt`)
 with the ERA5 single-level and pressure-level licences accepted.
 
-NumericalEarth is sourced by path from `~/NumericalEarth.jl` (branch `glw/cleanup`), which
-must include the ERA5 single-level table updates (Dec 2025 date range + the
-`tcwv`/`viwve`/`viwvn` IVT variables). Breeze is pinned to `glw/rrtmgp-nested-integration`.
+NumericalEarth is sourced by path from `~/NumericalEarth.jl` (branch `glw/cleanup`, which
+carries the Dec-2025 ERA5 date range and the `tcwv`/`viwve`/`viwvn` IVT variables).
+Breeze comes from `main` (≥ 0.8, which has the RRTMGP coupled-model APIs).
 
 ## Configuration (v0: one A100-40GB)
 
