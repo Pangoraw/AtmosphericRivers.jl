@@ -34,6 +34,7 @@ using NaturalEarth, GeoInterface # `natural_earth_lines` coastlines
 using CUDA
 using Printf
 using Dates: DateTime
+using Oceananigans.Advection: AdaptiveVerticallyImplicitDiscretization
 
 include("case.jl")
 
@@ -80,6 +81,28 @@ grid = LatitudeLongitudeGrid(arch;
 dataset = ERA5HourlyPressureLevels()
 relax_width = 5
 
+# AR_AIVA=1 gives every prognostic adaptively implicit vertical advection, dropping the
+# vertical advective CFL from the wizard's timescale so Δt can climb to the horizontal
+# limit. Rain/snow sedimentation stays explicit — watch qʳ as Δt grows.
+aiva = get(ENV, "AR_AIVA", "0") == "1"
+
+breeze_extension = Base.get_extension(NumericalEarth, :NumericalEarthBreezeExt)
+explicit_scalar_advection =
+    breeze_extension.default_nested_scalar_advection(breeze_extension.default_nested_microphysics())
+
+if aiva
+    implicit_vertical = AdaptiveVerticallyImplicitDiscretization(cfl = 0.5)
+    momentum_advection = WENO(order = 5, time_discretization = implicit_vertical)
+    scalar_names = keys(explicit_scalar_advection)
+    scalar_advection = NamedTuple{scalar_names}(map(scalar_names) do name
+        name === :ρθ ? WENO(order = 5, time_discretization = implicit_vertical) :
+                       WENO(order = 5, bounds = (0, 1), time_discretization = implicit_vertical)
+    end)
+else
+    momentum_advection = WENO(order = 5)
+    scalar_advection = explicit_scalar_advection
+end
+
 nest = nested_atmosphere_model(grid, dataset;
                                dates,
                                dir = era5_datadir,
@@ -87,7 +110,8 @@ nest = nested_atmosphere_model(grid, dataset;
                                terrain_blend_width = relax_width,
                                relaxation_rate = 1/300,
                                relaxation_width = relax_width,
-                               momentum_advection = WENO(order = 5))
+                               momentum_advection,
+                               scalar_advection)
 
 parent_atmosphere = nest.parent
 era5_region = BoundingBox(parent_atmosphere.grid)
