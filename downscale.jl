@@ -215,7 +215,7 @@ function progress(sim)
     return nothing
 end
 
-add_callback!(simulation, progress, IterationInterval(20))
+add_callback!(simulation, progress, IterationInterval(100))
 
 # ## Run
 
