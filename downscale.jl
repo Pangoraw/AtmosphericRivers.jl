@@ -152,11 +152,12 @@ radiation = RadiativeTransferModel(grid, AllSkyOptics(), nest.child.thermodynami
 # by the advective CFL (acoustic modes are substepped).
 
 Δt = 10
+maximum_Δt = parse(Float64, get(ENV, "AR_MAX_DT", "10"))   ## wizard cap; probe with AR_MAX_DT=30
 atmosphere = Simulation(nest; Δt)   ## the coupled model manages Δt; this sets only the initial value
 model = AtmosphereOceanModel(atmosphere, ocean; radiation)
 
 simulation = Simulation(model; Δt, stop_time = event_hours * hours)
-conjure_time_step_wizard!(simulation, IterationInterval(3); cfl = 0.5, max_Δt = Δt)
+conjure_time_step_wizard!(simulation, IterationInterval(3); cfl = 0.5, max_Δt = maximum_Δt)
 
 smoke && (simulation.stop_iteration = 30)
 
@@ -214,7 +215,7 @@ function progress(sim)
     return nothing
 end
 
-add_callback!(simulation, progress, IterationInterval(100))
+add_callback!(simulation, progress, IterationInterval(20))
 
 # ## Run
 
