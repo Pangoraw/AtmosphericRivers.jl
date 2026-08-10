@@ -220,7 +220,7 @@ aloft_filename   = name * "_aloft.jld2"
 section_filename = name * "_section.jld2"
 ivt_filename     = name * "_ivt.jld2"
 
-schedule = TimeInterval(30minutes)
+schedule = TimeInterval(parse(Float64, get(ENV, "AR_OUTPUT_MINUTES", "30")) * minutes)
 slice_writer(indices, filename) = JLD2Writer(model, fields; schedule, filename, indices,
                                              overwrite_existing = true)
 
