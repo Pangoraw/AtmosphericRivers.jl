@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH --job-name=ar-scale2
+#SBATCH --partition=gpua100largex4
+#SBATCH --gpus=2
+#SBATCH --ntasks=2
+#SBATCH --cpus-per-task=6
+#SBATCH --mem=160G
+#SBATCH --time=03:00:00
+#SBATCH --output=slurm/%x-%j.log
+
+# 2-GPU scaling experiment: longitude-partitioned MPI ranks, no output writers.
+cd "$SLURM_SUBMIT_DIR"
+export AR_RANKS=2 AR_HOURS=6 AR_NAME=scale2
+~/.juliaup/bin/julia --startup-file=no --project=. -e 'using MPI; run(`$(MPI.mpiexec()) -n 2 $(Base.julia_cmd()[1]) --startup-file=no --project=. downscale.jl`)'

@@ -37,10 +37,13 @@ using Dates: DateTime
 
 include("case.jl")
 
-arch = GPU()
+## AR_RANKS=2 partitions the domain in longitude across MPI ranks, one GPU each —
+## a throughput experiment: output writers and rendering stay single-rank only.
+ranks = parse(Int, get(ENV, "AR_RANKS", "1"))
+arch = ranks > 1 ? Distributed(GPU(); partition = Partition(ranks)) : GPU()
 Oceananigans.defaults.FloatType = Float32
 
-name = "pnw"
+name = get(ENV, "AR_NAME", "pnw")
 smoke = get(ENV, "AR_SMOKE", "0") == "1"
 
 # ## LAM grid
@@ -89,18 +92,17 @@ nest = nested_atmosphere_model(grid, dataset;
 parent_atmosphere = nest.parent
 era5_region = BoundingBox(parent_atmosphere.grid)
 
-fig = visualize_nested_domain(grid;
-                              parent = era5_region,
-                              padding = 2.5,
-                              title = "ERA5 → 12 km LAM nest (December 2025 PNW atmospheric river)",
-                              label = "12 km LAM (child)",
-                              parent_label = "ERA5 parent",
-                              landmarks = ("Seattle" => (-122.3, 47.6),
-                                           "Quillayute" => (-124.6, 47.9)))
-
-save("pnw_domains.png", fig)
-
-fig
+if ranks == 1
+    fig = visualize_nested_domain(grid;
+                                  parent = era5_region,
+                                  padding = 2.5,
+                                  title = "ERA5 → 12 km LAM nest (December 2025 PNW atmospheric river)",
+                                  label = "12 km LAM (child)",
+                                  parent_label = "ERA5 parent",
+                                  landmarks = ("Seattle" => (-122.3, 47.6),
+                                               "Quillayute" => (-124.6, 47.9)))
+    save("pnw_domains.png", fig)
+end
 
 # ## Prescribed ocean surface
 #
@@ -153,11 +155,12 @@ radiation = RadiativeTransferModel(grid, AllSkyOptics(), nest.child.thermodynami
 
 Δt = 10
 maximum_Δt = parse(Float64, get(ENV, "AR_MAX_DT", "10"))   ## wizard cap; probe with AR_MAX_DT=30
+cfl = parse(Float64, get(ENV, "AR_CFL", "0.5"))            ## wizard target; probe throughput with 0.7
 atmosphere = Simulation(nest; Δt)   ## the coupled model manages Δt; this sets only the initial value
 model = AtmosphereOceanModel(atmosphere, ocean; radiation)
 
 simulation = Simulation(model; Δt, stop_time = event_hours * hours)
-conjure_time_step_wizard!(simulation, IterationInterval(3); cfl = 0.5, max_Δt = maximum_Δt)
+conjure_time_step_wizard!(simulation, IterationInterval(3); cfl, max_Δt = maximum_Δt)
 
 smoke && (simulation.stop_iteration = 30)
 
@@ -195,12 +198,14 @@ schedule = TimeInterval(30minutes)
 slice_writer(indices, filename) = JLD2Writer(model, fields; schedule, filename, indices,
                                              overwrite_existing = true)
 
-simulation.output_writers[:surface] = slice_writer((:, :, 1),         surface_filename)
-simulation.output_writers[:aloft]   = slice_writer((:, :, k_aloft),   aloft_filename)
-simulation.output_writers[:section] = slice_writer((:, j_section, :), section_filename)
-simulation.output_writers[:ivt] = JLD2Writer(model, ivt_fields; schedule,
-                                             filename = ivt_filename,
-                                             overwrite_existing = true)
+if ranks == 1   ## distributed JLD2 output is untested; multi-rank runs measure stepping only
+    simulation.output_writers[:surface] = slice_writer((:, :, 1),         surface_filename)
+    simulation.output_writers[:aloft]   = slice_writer((:, :, k_aloft),   aloft_filename)
+    simulation.output_writers[:section] = slice_writer((:, j_section, :), section_filename)
+    simulation.output_writers[:ivt] = JLD2Writer(model, ivt_fields; schedule,
+                                                 filename = ivt_filename,
+                                                 overwrite_existing = true)
+end
 
 function progress(sim)
     child = sim.model.atmosphere.model.child
@@ -221,7 +226,7 @@ add_callback!(simulation, progress, IterationInterval(100))
 
 run!(simulation)
 
-smoke && exit(0)
+(smoke || ranks > 1) && exit(0)
 
 # ## Maps animation
 #
