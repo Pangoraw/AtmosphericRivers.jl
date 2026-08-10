@@ -14,10 +14,12 @@ event_hours = parse(Int, get(ENV, "AR_HOURS", "72"))
 stop_date = start_date + Hour(event_hours)
 dates = (start_date, stop_date)
 
-# Child domain: the AR's last ~1700 km of approach plus the Pacific Northwest terrain
-# (Olympics, Cascades, coastal ranges), Vancouver Island down to Northern California.
-longitude = (-148, -112)
-latitude = (38, 56)
+# Child domain: the moisture corridor from east of Hawaii to the coast, the Gulf of
+# Alaska parent low, and every landfall from BC to Northern California — plus the
+# Pacific Northwest terrain (Olympics, Cascades, coastal ranges). Kept east of the
+# dateline so one ERA5 subregion request covers the parent.
+longitude = (-170, -110)
+latitude = (25, 60)
 
 # ~12 km grid spacing: 2.25× refinement over ERA5's native 0.25°
 Δ = 1/9

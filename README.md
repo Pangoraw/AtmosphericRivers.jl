@@ -50,9 +50,10 @@ Breeze comes from `main` (≥ 0.8, which has the RRTMGP coupled-model APIs).
 
 ## Configuration (v0: one A100-40GB)
 
-- **Domain**: 148°W–112°W, 38°N–56°N — the AR's last ~1700 km of approach plus the
-  Olympics, Cascades, coastal ranges, and Vancouver Island.
-- **Resolution**: Δ = 1/9° ≈ 12 km, 324×162×50 ≈ 2.6M cells (Float32, ~4 GB total on GPU).
+- **Domain**: 170°W–110°W, 25°N–60°N — the moisture corridor from east of Hawaii to the
+  coast, the Gulf of Alaska parent low, and every landfall from BC to Northern
+  California, plus the Olympics, Cascades, and coastal ranges.
+- **Resolution**: Δ = 1/9° ≈ 12 km, 540×315×50 ≈ 8.5M cells (Float32, ~10 GB on GPU).
 - **Window**: 2025-12-07T12 + 72 h (override with `AR_HOURS`), covering the first
   landfall and the second pulse of the Dec 8–12 AR.
 
