@@ -81,6 +81,7 @@ grid = LatitudeLongitudeGrid(arch;
 dataset = ERA5HourlyPressureLevels()
 relax_width = parse(Int, get(ENV, "AR_RELAX_WIDTH", "5"))
 terrain_blend_length = parse(Float64, get(ENV, "AR_BLEND_LENGTH", "60000"))
+terrain_smoothing_passes = parse(Int, get(ENV, "AR_TERRAIN_SMOOTHING", "2"))
 
 # AR_AIVA=1 gives every prognostic adaptively implicit vertical advection, dropping the
 # vertical advective CFL from the wizard's timescale so Δt can climb to the horizontal
@@ -109,6 +110,7 @@ nest = nested_atmosphere_model(grid, dataset;
                                dir = era5_datadir,
                                terrain = ETOPO2022(),
                                terrain_blend_length,
+                               terrain_smoothing_passes,
                                relaxation_rate = 1/300,
                                relaxation_width = relax_width,
                                parent_time_indices_in_memory = 4,   ## stream the parent instead of holding every date
