@@ -198,7 +198,9 @@ schedule = TimeInterval(30minutes)
 slice_writer(indices, filename) = JLD2Writer(model, fields; schedule, filename, indices,
                                              overwrite_existing = true)
 
-if ranks == 1   ## distributed JLD2 output is untested; multi-rank runs measure stepping only
+output = ranks == 1 && get(ENV, "AR_OUTPUT", "1") == "1"   ## AR_OUTPUT=0: benchmark mode, no writers
+
+if output   ## distributed JLD2 output is untested; multi-rank runs measure stepping only
     simulation.output_writers[:surface] = slice_writer((:, :, 1),         surface_filename)
     simulation.output_writers[:aloft]   = slice_writer((:, :, k_aloft),   aloft_filename)
     simulation.output_writers[:section] = slice_writer((:, j_section, :), section_filename)
@@ -207,14 +209,18 @@ if ranks == 1   ## distributed JLD2 output is untested; multi-rank runs measure 
                                                  overwrite_existing = true)
 end
 
+previous_wall_time = Ref(time_ns())
+
 function progress(sim)
+    wall_seconds = 1e-9 * (time_ns() - previous_wall_time[])
+    previous_wall_time[] = time_ns()
     child = sim.model.atmosphere.model.child
     u, v, w = child.velocities
     ρ  = child.dynamics.total_density
     qᵛ = specific_humidity(child)
     qʳ = child.microphysical_fields.qʳ
-    @info @sprintf("iter=%4d, t=%s, Δt=%s, max|u|=(%7.2f, %7.2f, %6.2f), ρ ∈ [%.4f, %.4f], qᵛ ∈ [%.4g, %.4g], qʳ ∈ [%.2g, %.2g]",
-                   sim.model.clock.iteration, prettytime(sim), prettytime(sim.Δt),
+    @info @sprintf("iter=%4d, t=%s, Δt=%s, wall=%6.1fs, max|u|=(%7.2f, %7.2f, %6.2f), ρ ∈ [%.4f, %.4f], qᵛ ∈ [%.4g, %.4g], qʳ ∈ [%.2g, %.2g]",
+                   sim.model.clock.iteration, prettytime(sim), prettytime(sim.Δt), wall_seconds,
                    maximum(abs, u), maximum(abs, v), maximum(abs, w), minimum(ρ), maximum(ρ),
                    minimum(qᵛ), maximum(qᵛ), minimum(qʳ), maximum(qʳ))
     return nothing
@@ -226,7 +232,7 @@ add_callback!(simulation, progress, IterationInterval(100))
 
 run!(simulation)
 
-(smoke || ranks > 1) && exit(0)
+(smoke || !output) && exit(0)
 
 # ## Maps animation
 #
