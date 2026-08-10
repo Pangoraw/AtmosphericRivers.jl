@@ -57,6 +57,16 @@ Breeze comes from `main` (≥ 0.8, which has the RRTMGP coupled-model APIs).
 - **Window**: 2025-12-07T12 + 72 h (override with `AR_HOURS`), covering the first
   landfall and the second pulse of the Dec 8–12 AR.
 
+## Results (run `pnw72`, 2026-08-10)
+
+The full 72 h hindcast (Dec 7 12Z → Dec 10 12Z) completed in 3.77 h of stepping on one
+A100-40GB (47,600 iterations, ≈19× real time) with the production recipe:
+`AR_RELAX_WIDTH=8 AR_BLEND_LENGTH=240000` and the streaming ERA5 parent. The interior
+(> 25 cells from the frame) stays physical for all 72 hours; analysis masks that rind.
+Peak interior IVT at landfall reaches 1592 kg m⁻¹ s⁻¹ where ERA5 has 1081 — the nest
+sharpens the AR core the 0.25° reanalysis smooths. `analysis/compare_ivt.jl` makes the
+matched-time comparison figure and `analysis/animate_ivt.jl` the side-by-side animation.
+
 ## Scale-up ladder
 
 1. **6 km** (Δ = 1/18°) on the same domain — no code changes, ~10M cells.
