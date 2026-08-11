@@ -9,4 +9,12 @@
 
 # Smoke test first: sbatch --export=ALL,AR_SMOKE=1 slurm/downscale.batch
 cd "$SLURM_SUBMIT_DIR"
-~/.juliaup/bin/julia --startup-file=no --project=. downscale.jl
+
+# Use the prebuilt system image only when it matches the current Manifest
+# (a stale sysimage silently pins old package versions).
+SYS=/home/greg_aeolus_earth/AtmosphericRivers.jl/sysimage_a100.so
+JFLAGS=""
+if [ -f "$SYS" ] && [ -f "$SYS.manifest.sha" ] && [ "$(sha256sum Manifest.toml | cut -d" " -f1)" = "$(cat $SYS.manifest.sha)" ]; then
+    JFLAGS="-J $SYS"
+fi
+~/.juliaup/bin/julia $JFLAGS --startup-file=no --project=. downscale.jl

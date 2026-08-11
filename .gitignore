@@ -4,3 +4,4 @@ runs/
 *.mp4
 *.png
 slurm/*.log
+sysimage_a100.so*
