@@ -8,4 +8,9 @@
 
 # Fetch all ERA5 files up front on a cheap node, so GPU jobs never wait on the CDS queue.
 cd "$SLURM_SUBMIT_DIR"
+
+# Size Julia's workers to the allocation, not the node (24 cores): precompile
+# workers and BLAS threads otherwise oversubscribe the cgroup and thrash.
+export JULIA_NUM_PRECOMPILE_TASKS=${SLURM_CPUS_PER_TASK:-8}
+export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK:-8}
 ~/.juliaup/bin/julia --startup-file=no --project=. predownload.jl

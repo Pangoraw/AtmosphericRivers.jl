@@ -29,8 +29,6 @@ using Breeze
 using CopernicusClimateDataStore # ERA5 + CGLS-albedo downloads
 using CloudMicrophysics          # nested_atmosphere_model's default 1-moment mixed-phase microphysics
 using RRTMGP                     # Breeze's radiative-transfer extension
-using CairoMakie
-using NaturalEarth, GeoInterface # `natural_earth_lines` coastlines
 using CUDA
 using Printf
 using Dates: DateTime
@@ -123,18 +121,6 @@ nest = nested_atmosphere_model(grid, dataset;
 
 parent_atmosphere = nest.parent
 era5_region = BoundingBox(parent_atmosphere.grid)
-
-if ranks == 1
-    fig = visualize_nested_domain(grid;
-                                  parent = era5_region,
-                                  padding = 2.5,
-                                  title = "ERA5 → 12 km LAM nest (December 2025 PNW atmospheric river)",
-                                  label = "12 km LAM (child)",
-                                  parent_label = "ERA5 parent",
-                                  landmarks = ("Seattle" => (-122.3, 47.6),
-                                               "Quillayute" => (-124.6, 47.9)))
-    save("pnw_domains.png", fig)
-end
 
 # ## Prescribed ocean surface
 #
@@ -264,102 +250,5 @@ add_callback!(simulation, progress, IterationInterval(100))
 
 run!(simulation)
 
-(smoke || !output || ranks > 1) && exit(0)
-
-# ## Maps animation
-#
-# IVT magnitude (the AR itself), surface wind speed, and vertical velocity + rain at
-# ~2 km. The saved slices load back as `FieldTimeSeries` and plot directly — lazy field
-# operations (the IVT magnitude, unit conversions) recompute per frame.
-
-ivt_east_series  = FieldTimeSeries(ivt_filename, "ivt_east")
-ivt_north_series = FieldTimeSeries(ivt_filename, "ivt_north")
-U_series  = FieldTimeSeries(surface_filename, "U")
-w_series  = FieldTimeSeries(aloft_filename, "w")
-qʳ_series = FieldTimeSeries(aloft_filename, "qʳ")
-times = U_series.times
-
-coastλ, coastφ = natural_earth_lines("coastline")
-g_per_kg(field) = 1f3 * field
-
-panels = [(title = "IVT (kg m⁻¹ s⁻¹)", colormap = :dense,   colorrange = (0, 1200),
-           field = n -> sqrt(ivt_east_series[n]^2 + ivt_north_series[n]^2)),
-          (title = "|U|ₛ (m s⁻¹)",     colormap = :speed,   colorrange = (0, 40),
-           field = n -> U_series[n]),
-          (title = "w₂ₖₘ (m s⁻¹)",     colormap = :balance, colorrange = (-3, 3),
-           field = n -> w_series[n]),
-          (title = "qʳ₂ₖₘ (g kg⁻¹)",   colormap = :dense,   colorrange = (0, 1.5),
-           field = n -> g_per_kg(qʳ_series[n]))]
-
-fig_maps = Figure(size = (1250, 700))
-maps_n = Observable(1)
-
-Label(fig_maps[0, 1:2],
-      @lift(@sprintf("ERA5 → 12 km Breeze — December 2025 PNW atmospheric river — t = %.1f h",
-                     times[$maps_n] / 3600)),
-      fontsize = 18, tellwidth = false)
-
-for (i, panel) in enumerate(panels)
-    row, col = fldmod1(i, 2)
-    sub = fig_maps[row, col] = GridLayout()
-    ax = Axis(sub[1, 1]; title = panel.title, aspect = DataAspect())
-
-    ## Type-erased observable: per-frame lazy operations drift in concrete type,
-    ## which a @lift-typed Observable rejects at the second frame.
-    frame = Observable{Any}(panel.field(1))
-    on(n -> frame[] = panel.field(n), maps_n)
-
-    hm = heatmap!(ax, frame; colormap = panel.colormap, colorrange = panel.colorrange)
-    lines!(ax, coastλ, coastφ; color = :black, linewidth = 0.5)
-    xlims!(ax, longitude...)
-    ylims!(ax, latitude...)
-    hidedecorations!(ax)
-    Colorbar(sub[1, 2], hm)
-end
-
-CairoMakie.record(fig_maps, name * "_maps.mp4", eachindex(times); framerate = 10) do nn
-    maps_n[] = nn   ## `record` is also exported by CUDA, so qualify it
-end
-nothing #hide
-
-# ## Section animation
-#
-# The vertical structure along 47.5°N: the low-level jet and moist tongue feeding the
-# orographic precipitation, and the mountain-wave response over the Olympics and Cascades.
-
-U_section  = FieldTimeSeries(section_filename, "U")
-w_section  = FieldTimeSeries(section_filename, "w")
-qᵛ_section = FieldTimeSeries(section_filename, "qᵛ")
-
-section_n = Observable(1)
-Uₙ  = Observable{Any}(U_section[1])
-wₙ  = Observable{Any}(w_section[1])
-qᵛₙ = Observable{Any}(g_per_kg(qᵛ_section[1]))
-on(section_n) do n
-    Uₙ[]  = U_section[n]
-    wₙ[]  = w_section[n]
-    qᵛₙ[] = g_per_kg(qᵛ_section[n])
-end
-
-fig_section = Figure(size = (1000, 900))
-
-Label(fig_section[0, 1:2],
-      @lift(@sprintf("Vertical structure at 47.5°N — t = %.1f h", times[$section_n] / 3600)),
-      fontsize = 18, tellwidth = false)
-
-ax_U = Axis(fig_section[1, 1]; ylabel = "z (m)", title = "|U| (m s⁻¹)")
-ax_w = Axis(fig_section[2, 1]; ylabel = "z (m)", title = "w (m s⁻¹)")
-ax_q = Axis(fig_section[3, 1]; ylabel = "z (m)", xlabel = "longitude (°)", title = "qᵛ (g kg⁻¹)")
-
-hm_U = heatmap!(ax_U, Uₙ;  colormap = :speed,   colorrange = (0, 50))
-hm_w = heatmap!(ax_w, wₙ;  colormap = :balance, colorrange = (-3, 3))
-hm_q = heatmap!(ax_q, qᵛₙ; colormap = :dense,   colorrange = (0, 12))
-
-Colorbar(fig_section[1, 2], hm_U)
-Colorbar(fig_section[2, 2], hm_w)
-Colorbar(fig_section[3, 2], hm_q)
-
-CairoMakie.record(fig_section, name * "_section.mp4", eachindex(times); framerate = 10) do nn
-    section_n[] = nn
-end
-nothing #hide
+# Rendering (maps and section animations) lives in `analysis/render_run.jl`,
+# so simulation jobs never pay the Makie load.

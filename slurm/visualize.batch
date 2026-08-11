@@ -8,6 +8,11 @@
 
 cd "$SLURM_SUBMIT_DIR"
 
+# Size Julia's workers to the allocation, not the node (24 cores): precompile
+# workers and BLAS threads otherwise oversubscribe the cgroup and thrash.
+export JULIA_NUM_PRECOMPILE_TASKS=${SLURM_CPUS_PER_TASK:-8}
+export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK:-8}
+
 SYS=/home/greg_aeolus_earth/AtmosphericRivers.jl/sysimage_a100.so
 JFLAGS=""
 if [ -f "$SYS" ] && [ -f "$SYS.manifest.sha" ] && [ "$(cat Manifest.toml LocalPreferences.toml 2>/dev/null | sha256sum | cut -d" " -f1)" = "$(cat $SYS.manifest.sha)" ]; then

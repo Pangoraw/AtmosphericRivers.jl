@@ -10,5 +10,10 @@
 # Instantiate on an A100 node: ~/.julia is NFS-shared and precompile caches are
 # arch-specific, so a login-node instantiate does not validate what compute nodes load.
 cd "$SLURM_SUBMIT_DIR"
+
+# Size Julia's workers to the allocation, not the node (24 cores): precompile
+# workers and BLAS threads otherwise oversubscribe the cgroup and thrash.
+export JULIA_NUM_PRECOMPILE_TASKS=${SLURM_CPUS_PER_TASK:-8}
+export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK:-8}
 ~/.juliaup/bin/julia --startup-file=no --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
 ~/.juliaup/bin/julia --startup-file=no --project=. -e 'using NumericalEarth, Breeze, CUDA; @info "Stack loads" CUDA.functional()'
