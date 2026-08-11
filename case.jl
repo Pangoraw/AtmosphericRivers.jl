@@ -14,12 +14,14 @@ event_hours = parse(Int, get(ENV, "AR_HOURS", "72"))
 stop_date = start_date + Hour(event_hours)
 dates = (start_date, stop_date)
 
-# Child domain: the moisture corridor from east of Hawaii to the coast, the Gulf of
-# Alaska parent low, and every landfall from BC to Northern California — plus the
-# Pacific Northwest terrain (Olympics, Cascades, coastal ranges). Kept east of the
-# dateline so one ERA5 subregion request covers the parent.
-longitude = (-170, -110)
-latitude = (25, 60)
+# Child domain presets: `corridor` (default) spans the moisture corridor from east of
+# Hawaii to the coast, the Gulf of Alaska parent low, and every landfall from BC to
+# Northern California; `landfall` is the compact box for single-GPU convection-permitting
+# runs — the AR's final approach plus the Pacific Northwest terrain. Both stay east of
+# the dateline so one ERA5 subregion request covers the parent.
+domain_presets = (corridor = ((-170, -110), (25, 60)),
+                  landfall = ((-148, -112), (38, 56)))
+longitude, latitude = domain_presets[Symbol(get(ENV, "AR_DOMAIN", "corridor"))]
 
 # ~12 km grid spacing by default (2.25× refinement over ERA5's native 0.25°);
 # AR_CELLS_PER_DEGREE=36 gives the ~3 km convection-permitting configuration.
