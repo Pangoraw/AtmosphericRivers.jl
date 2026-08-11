@@ -13,6 +13,7 @@ cd "$SLURM_SUBMIT_DIR"
 
 export JULIA_NUM_PRECOMPILE_TASKS=${SLURM_CPUS_PER_TASK:-8}
 export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK:-8}
+export HDF5_USE_FILE_LOCKING=FALSE   # NFS: HDF5 POSIX locks misbehave
 
 # Precompile serially BEFORE mpiexec: ranks precompiling concurrently race the
 # shared depot's pidfiles (duplicated work, long silent stalls).

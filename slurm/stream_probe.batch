@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=ar-s2smoke
+#SBATCH --job-name=ar-stream2
 #SBATCH --partition=gpua100largex4
 #SBATCH --gpus=2
 #SBATCH --ntasks=2
@@ -8,15 +8,14 @@
 #SBATCH --time=02:00:00
 #SBATCH --output=slurm/%x-%j.log
 
-# 2-rank NCCL smoke of the full downscale init + 30 iterations, with line-buffered
-# stdout (stdbuf) so a crash localizes to the last printed line.
+# Streaming-boundary probe: small parent window (2 slices) forces the first
+# parent stream at t >= 1 h; 10-iteration progress brackets any NaN onset.
 cd "$SLURM_SUBMIT_DIR"
 
 export JULIA_NUM_PRECOMPILE_TASKS=${SLURM_CPUS_PER_TASK:-8}
 export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK:-8}
 export HDF5_USE_FILE_LOCKING=FALSE   # NFS: HDF5 POSIX locks misbehave
-export AR_RANKS=2 AR_HOURS=6 AR_NAME=scale2smoke AR_SMOKE=1
+export AR_RANKS=2 AR_HOURS=3 AR_NAME=stream2 AR_PARENT_MEMORY=2 AR_PROGRESS_INTERVAL=10 AR_OUTPUT=0
 
-# Precompile serially BEFORE mpiexec (ranks race depot pidfiles otherwise).
 ~/.juliaup/bin/julia --startup-file=no --project=. -e 'using Pkg; Pkg.precompile()'
 ~/.juliaup/bin/julia --startup-file=no --project=. -e 'using MPI; run(`$(MPI.mpiexec()) -n 2 stdbuf -oL -eL $(Base.julia_cmd()[1]) --startup-file=no --project=. downscale.jl`)'

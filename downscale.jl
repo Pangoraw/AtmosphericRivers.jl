@@ -118,7 +118,7 @@ nest = nested_atmosphere_model(grid, dataset;
                                terrain_smoothing_passes,
                                relaxation_rate = 1/300,
                                relaxation_width = relax_width,
-                               parent_time_indices_in_memory = 4,   ## stream the parent instead of holding every date
+                               parent_time_indices_in_memory = parse(Int, get(ENV, "AR_PARENT_MEMORY", "4")),   ## stream the parent instead of holding every date
                                momentum_advection,
                                scalar_advection)
 
@@ -247,7 +247,7 @@ function progress(sim)
     return nothing
 end
 
-add_callback!(simulation, progress, IterationInterval(100))
+add_callback!(simulation, progress, IterationInterval(parse(Int, get(ENV, "AR_PROGRESS_INTERVAL", "100"))))
 
 # ## Run
 
