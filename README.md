@@ -67,6 +67,27 @@ Peak interior IVT at landfall reaches 1592 kg m⁻¹ s⁻¹ where ERA5 has 1081 
 sharpens the AR core the 0.25° reanalysis smooths. `analysis/compare_ivt.jl` makes the
 matched-time comparison figure and `analysis/animate_ivt.jl` the side-by-side animation.
 
+## Multi-GPU (2026-08-11)
+
+`AR_RANKS=2` runs the nest on 2 A100s via `NCCLDistributed` (NCCL moves device halo
+buffers over NVLink; host MPI bootstraps — the cluster's MPI is not CUDA-aware and
+doesn't need to be). Validated end-to-end: `test_nccl_halo.jl`, a 30-iteration smoke,
+and two full 6-simulated-hour runs.
+
+- **Strong scaling 1→2 GPUs: 1.50× speedup (75% efficiency)** — 0.178 vs 0.267 s/iter
+  on the 12 km corridor.
+- Multi-rank runs hold the whole ERA5 parent resident (`AR_PARENT_MEMORY=all` default):
+  streaming's concurrent NetCDF reads of one NFS file intermittently corrupt at window
+  moves.
+- Upstream fixes this campaign surfaced: Oceananigans
+  [#5863](https://github.com/CliMA/Oceananigans.jl/pull/5863) (NCCL ext: `CUDA.wait` +
+  device-buffer collectives), Breeze
+  [#899](https://github.com/NumericalEarth/Breeze.jl/pull/899) (`rrtmgp_context` for
+  distributed architectures), and NumericalEarth `glw/cleanup` (bathymetry reduction
+  element-type match across ranks).
+- Next rungs: 4-GPU scaling point, then the full corridor at 3 km (~136M cells,
+  ~34M cells/GPU) once the single-GPU 3 km landfall run releases its A100.
+
 ## Scale-up ladder
 
 1. **6 km** (Δ = 1/18°) on the same domain — no code changes, ~10M cells.
