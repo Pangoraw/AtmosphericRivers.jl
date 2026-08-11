@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name=ar-ncclhalo
+#SBATCH --job-name=ar-nodeprobe
 #SBATCH --partition=gpua100largex4
 #SBATCH --gpus=2
 #SBATCH --ntasks=2
 #SBATCH --cpus-per-task=2
-#SBATCH --mem=24G
+#SBATCH --mem=48G
 #SBATCH --time=01:00:00
 #SBATCH --output=slurm/%x-%j.log
 
@@ -17,4 +17,4 @@ export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK:-8}
 # Precompile serially BEFORE mpiexec: ranks precompiling concurrently race the
 # shared depot's pidfiles (duplicated work, long silent stalls).
 ~/.juliaup/bin/julia --startup-file=no --project=. -e 'using Pkg; Pkg.precompile()'
-~/.juliaup/bin/julia --startup-file=no --project=. -e 'using MPI; run(`$(MPI.mpiexec()) -n 2 $(Base.julia_cmd()[1]) --startup-file=no --project=. test_nccl_halo.jl`)'
+~/.juliaup/bin/julia --startup-file=no --project=. -e 'using MPI; run(`$(MPI.mpiexec()) -n 2 $(Base.julia_cmd()[1]) --startup-file=no --project=. node_probe.jl`)'

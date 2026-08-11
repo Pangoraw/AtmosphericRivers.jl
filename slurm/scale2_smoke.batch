@@ -1,0 +1,21 @@
+#!/bin/bash
+#SBATCH --job-name=ar-s2smoke
+#SBATCH --partition=gpua100largex4
+#SBATCH --gpus=2
+#SBATCH --ntasks=2
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=120G
+#SBATCH --time=02:00:00
+#SBATCH --output=slurm/%x-%j.log
+
+# 2-rank NCCL smoke of the full downscale init + 30 iterations, with line-buffered
+# stdout (stdbuf) so a crash localizes to the last printed line.
+cd "$SLURM_SUBMIT_DIR"
+
+export JULIA_NUM_PRECOMPILE_TASKS=${SLURM_CPUS_PER_TASK:-8}
+export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK:-8}
+export AR_RANKS=2 AR_HOURS=6 AR_NAME=scale2smoke AR_SMOKE=1
+
+# Precompile serially BEFORE mpiexec (ranks race depot pidfiles otherwise).
+~/.juliaup/bin/julia --startup-file=no --project=. -e 'using Pkg; Pkg.precompile()'
+~/.juliaup/bin/julia --startup-file=no --project=. -e 'using MPI; run(`$(MPI.mpiexec()) -n 2 stdbuf -oL -eL $(Base.julia_cmd()[1]) --startup-file=no --project=. downscale.jl`)'
