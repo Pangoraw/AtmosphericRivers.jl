@@ -48,9 +48,8 @@ Oceananigans.defaults.FloatType = Float32
 name = get(ENV, "AR_NAME", "pnw")
 smoke = get(ENV, "AR_SMOKE", "0") == "1"
 
-## Distributed runs write one JLD2 file per rank (each holding that rank's partition);
-## stitch or analyze per-rank in post. Rendering stays single-rank only.
-rank_suffix = ranks > 1 ? "_rank$(arch.local_rank)" : ""
+## Distributed runs write one JLD2 file per rank (Oceananigans appends _rank<N> to the
+## filename); stitch or analyze per-rank in post. Rendering stays single-rank only.
 
 # ## LAM grid
 #
@@ -217,10 +216,10 @@ ivt_fields = (ivt_east  = Integral(ρ * qᵛ * u, dims = 3),
               ivt_north = Integral(ρ * qᵛ * v, dims = 3),
               precipitable_water = Integral(ρ * qᵛ, dims = 3))
 
-surface_filename = name * rank_suffix * "_surface.jld2"
-aloft_filename   = name * rank_suffix * "_aloft.jld2"
-section_filename = name * rank_suffix * "_section.jld2"
-ivt_filename     = name * rank_suffix * "_ivt.jld2"
+surface_filename = name * "_surface.jld2"
+aloft_filename   = name * "_aloft.jld2"
+section_filename = name * "_section.jld2"
+ivt_filename     = name * "_ivt.jld2"
 
 schedule = TimeInterval(parse(Float64, get(ENV, "AR_OUTPUT_MINUTES", "30")) * minutes)
 slice_writer(indices, filename) = JLD2Writer(model, fields; schedule, filename, indices,
