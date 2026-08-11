@@ -3,8 +3,8 @@
 #SBATCH --partition=gpua100largex4
 #SBATCH --gpus=2
 #SBATCH --ntasks=2
-#SBATCH --cpus-per-task=6
-#SBATCH --mem=300G
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=126G
 #SBATCH --time=24:00:00
 #SBATCH --output=slurm/%x-%j.log
 
@@ -16,7 +16,7 @@ export JULIA_NUM_PRECOMPILE_TASKS=${SLURM_CPUS_PER_TASK:-8}
 export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK:-8}
 export HDF5_USE_FILE_LOCKING=FALSE   # NFS: HDF5 POSIX locks misbehave
 export AR_RANKS=2 AR_NAME=pnw6km AR_CELLS_PER_DEGREE=18 AR_HOURS=72
-export AR_RELAX_WIDTH=16 AR_BLEND_LENGTH=240000
+export AR_RELAX_WIDTH=24 AR_BLEND_LENGTH=360000
 
 # Precompile serially BEFORE mpiexec (ranks race depot pidfiles otherwise).
 ~/.juliaup/bin/julia --startup-file=no --project=. -e 'using Pkg; Pkg.precompile()'
