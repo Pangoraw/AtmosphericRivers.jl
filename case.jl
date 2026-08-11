@@ -23,6 +23,11 @@ domain_presets = (corridor = ((-170, -110), (25, 60)),
                   landfall = ((-148, -112), (38, 56)))
 longitude, latitude = domain_presets[Symbol(get(ENV, "AR_DOMAIN", "corridor"))]
 
+# The northern corridor edge cuts through the steep BC-coast terrain that seeds the
+# frame cold-point instability at (-129.7, 59.8); AR_LAT_NORTH trims it out (the AR
+# landfalls all sit south of 56).
+latitude = (latitude[1], parse(Float64, get(ENV, "AR_LAT_NORTH", string(latitude[2]))))
+
 # ~12 km grid spacing by default (2.25× refinement over ERA5's native 0.25°);
 # AR_CELLS_PER_DEGREE=36 gives the ~3 km convection-permitting configuration.
 Δ = 1 / parse(Float64, get(ENV, "AR_CELLS_PER_DEGREE", "9"))
