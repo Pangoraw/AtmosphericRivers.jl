@@ -7,4 +7,10 @@
 #SBATCH --output=slurm/%x-%j.log
 
 cd "$SLURM_SUBMIT_DIR"
-~/.juliaup/bin/julia --startup-file=no --project=. visualize_era5.jl
+
+SYS=/home/greg_aeolus_earth/AtmosphericRivers.jl/sysimage_a100.so
+JFLAGS=""
+if [ -f "$SYS" ] && [ -f "$SYS.manifest.sha" ] && [ "$(sha256sum Manifest.toml | cut -d" " -f1)" = "$(cat $SYS.manifest.sha)" ]; then
+    JFLAGS="-J $SYS"
+fi
+~/.juliaup/bin/julia $JFLAGS --startup-file=no --project=. visualize_era5.jl
