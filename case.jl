@@ -21,8 +21,9 @@ dates = (start_date, stop_date)
 longitude = (-170, -110)
 latitude = (25, 60)
 
-# ~12 km grid spacing: 2.25× refinement over ERA5's native 0.25°
-Δ = 1/9
+# ~12 km grid spacing by default (2.25× refinement over ERA5's native 0.25°);
+# AR_CELLS_PER_DEGREE=36 gives the ~3 km convection-permitting configuration.
+Δ = 1 / parse(Float64, get(ENV, "AR_CELLS_PER_DEGREE", "9"))
 Nx = round(Int, (longitude[2] - longitude[1]) / Δ)
 Ny = round(Int, (latitude[2] - latitude[1]) / Δ)
 

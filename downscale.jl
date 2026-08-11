@@ -217,18 +217,22 @@ ivt_fields = (ivt_east  = Integral(ρ * qᵛ * u, dims = 3),
               ivt_north = Integral(ρ * qᵛ * v, dims = 3),
               precipitable_water = Integral(ρ * qᵛ, dims = 3))
 
-surface_filename = name * "_surface.jld2"
-aloft_filename   = name * "_aloft.jld2"
-section_filename = name * "_section.jld2"
-ivt_filename     = name * "_ivt.jld2"
+surface_filename = name * rank_suffix * "_surface.jld2"
+aloft_filename   = name * rank_suffix * "_aloft.jld2"
+section_filename = name * rank_suffix * "_section.jld2"
+ivt_filename     = name * rank_suffix * "_ivt.jld2"
 
 schedule = TimeInterval(parse(Float64, get(ENV, "AR_OUTPUT_MINUTES", "30")) * minutes)
 slice_writer(indices, filename) = JLD2Writer(model, fields; schedule, filename, indices,
                                              overwrite_existing = true)
 
-output = ranks == 1 && get(ENV, "AR_OUTPUT", "1") == "1"   ## AR_OUTPUT=0: benchmark mode, no writers
+output = get(ENV, "AR_OUTPUT", "1") == "1"   ## AR_OUTPUT=0: benchmark mode, no writers
 
-if output   ## distributed JLD2 output is untested; multi-rank runs measure stepping only
+## Distributed runs write one JLD2 file per rank (each holding that rank's partition);
+## stitch or analyze per-rank in post. Rendering stays single-rank only.
+rank_suffix = ranks > 1 ? "_rank$(arch.local_rank)" : ""
+
+if output
     simulation.output_writers[:surface] = slice_writer((:, :, 1),         surface_filename)
     simulation.output_writers[:aloft]   = slice_writer((:, :, k_aloft),   aloft_filename)
     simulation.output_writers[:section] = slice_writer((:, j_section, :), section_filename)
@@ -260,7 +264,7 @@ add_callback!(simulation, progress, IterationInterval(100))
 
 run!(simulation)
 
-(smoke || !output) && exit(0)
+(smoke || !output || ranks > 1) && exit(0)
 
 # ## Maps animation
 #
