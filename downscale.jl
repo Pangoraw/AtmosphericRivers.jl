@@ -47,6 +47,10 @@ Oceananigans.defaults.FloatType = Float32
 name = get(ENV, "AR_NAME", "pnw")
 smoke = get(ENV, "AR_SMOKE", "0") == "1"
 
+## Distributed runs write one JLD2 file per rank (each holding that rank's partition);
+## stitch or analyze per-rank in post. Rendering stays single-rank only.
+rank_suffix = ranks > 1 ? "_rank$(arch.local_rank)" : ""
+
 # ## LAM grid
 #
 # Vertical grid as in the MC3E example: 50 cells, constant 60 m surface spacing,
@@ -227,10 +231,6 @@ slice_writer(indices, filename) = JLD2Writer(model, fields; schedule, filename, 
                                              overwrite_existing = true)
 
 output = get(ENV, "AR_OUTPUT", "1") == "1"   ## AR_OUTPUT=0: benchmark mode, no writers
-
-## Distributed runs write one JLD2 file per rank (each holding that rank's partition);
-## stitch or analyze per-rank in post. Rendering stays single-rank only.
-rank_suffix = ranks > 1 ? "_rank$(arch.local_rank)" : ""
 
 if output
     simulation.output_writers[:surface] = slice_writer((:, :, 1),         surface_filename)
