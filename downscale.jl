@@ -93,6 +93,13 @@ terrain_smoothing_passes = parse(Int, get(ENV, "AR_TERRAIN_SMOOTHING", "2"))
 # limit. Rain/snow sedimentation stays explicit — watch qʳ as Δt grows.
 aiva = get(ENV, "AR_AIVA", "0") == "1"
 
+## Streaming the parent (a memory optimization) is unsafe on multi-rank runs: concurrent
+## NetCDF reads of one file over NFS intermittently return garbage at a window move. The
+## whole parent is only a few GB, so multi-rank runs hold every date resident instead.
+## AR_PARENT_MEMORY: "all" holds everything; an integer streams a window of that size.
+parent_memory = get(ENV, "AR_PARENT_MEMORY", ranks > 1 ? "all" : "4")
+parent_time_indices_in_memory = parent_memory == "all" ? nothing : parse(Int, parent_memory)
+
 breeze_extension = Base.get_extension(NumericalEarth, :NumericalEarthBreezeExt)
 explicit_scalar_advection =
     breeze_extension.default_nested_scalar_advection(breeze_extension.default_nested_microphysics())
@@ -118,7 +125,7 @@ nest = nested_atmosphere_model(grid, dataset;
                                terrain_smoothing_passes,
                                relaxation_rate = 1/300,
                                relaxation_width = relax_width,
-                               parent_time_indices_in_memory = parse(Int, get(ENV, "AR_PARENT_MEMORY", "4")),   ## stream the parent instead of holding every date
+                               parent_time_indices_in_memory,
                                momentum_advection,
                                scalar_advection)
 
