@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH --job-name=ar-ncclhalo
+#SBATCH --partition=gpua100largex4
+#SBATCH --gpus=2
+#SBATCH --ntasks=2
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=64G
+#SBATCH --time=01:00:00
+#SBATCH --output=slurm/%x-%j.log
+
+# NCCLDistributed fill_halo_regions! validation on 2 A100s.
+cd "$SLURM_SUBMIT_DIR"
+
+export JULIA_NUM_PRECOMPILE_TASKS=${SLURM_CPUS_PER_TASK:-8}
+export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK:-8}
+
+# Precompile serially BEFORE mpiexec: ranks precompiling concurrently race the
+# shared depot's pidfiles (duplicated work, long silent stalls).
+~/.juliaup/bin/julia --startup-file=no --project=. -e 'using Pkg; Pkg.precompile()'
+~/.juliaup/bin/julia --startup-file=no --project=. -e 'using MPI; run(`$(MPI.mpiexec()) -n 2 $(Base.julia_cmd()[1]) --startup-file=no --project=. test_nccl_halo.jl`)'

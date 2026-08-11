@@ -30,16 +30,19 @@ using CopernicusClimateDataStore # ERA5 + CGLS-albedo downloads
 using CloudMicrophysics          # nested_atmosphere_model's default 1-moment mixed-phase microphysics
 using RRTMGP                     # Breeze's radiative-transfer extension
 using CUDA
+using NCCL # activates OceananigansNCCLExt: NCCL moves device halo buffers, host MPI bootstraps
 using Printf
 using Dates: DateTime
 using Oceananigans.Advection: AdaptiveVerticallyImplicitDiscretization
+using Oceananigans.DistributedComputations: NCCLDistributed
 
 include("case.jl")
 
-## AR_RANKS=2 partitions the domain in longitude across MPI ranks, one GPU each —
-## a throughput experiment: output writers and rendering stay single-rank only.
+## AR_RANKS=2 partitions the domain in longitude across MPI ranks, one GPU each.
+## NCCLDistributed carries device halo buffers over NVLink (the cluster's MPI is not
+## CUDA-aware); host MPI handles launch, bootstrap, and scalar reductions.
 ranks = parse(Int, get(ENV, "AR_RANKS", "1"))
-arch = ranks > 1 ? Distributed(GPU(); partition = Partition(ranks)) : GPU()
+arch = ranks > 1 ? NCCLDistributed(GPU(); partition = Partition(ranks)) : GPU()
 Oceananigans.defaults.FloatType = Float32
 
 name = get(ENV, "AR_NAME", "pnw")
