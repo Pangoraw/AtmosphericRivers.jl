@@ -1,0 +1,22 @@
+#!/bin/bash
+#SBATCH --job-name=ar-3kmtail
+#SBATCH --partition=gpua100largex4
+#SBATCH --gpus=1
+#SBATCH --cpus-per-task=6
+#SBATCH --mem=200G
+#SBATCH --time=24:00:00
+#SBATCH --output=slurm/%x-%j.log
+
+# Tail completion for the 3 km landfall run: the original NaN'd at t = 51.3 h in
+# peak second-pulse convection. Fresh ERA5 start Dec 9 06Z (9 h overlap before the
+# crash point) with 4-pass terrain smoothing, through Dec 10 12Z.
+cd "$SLURM_SUBMIT_DIR"
+
+export JULIA_NUM_PRECOMPILE_TASKS=${SLURM_CPUS_PER_TASK:-8}
+export OPENBLAS_NUM_THREADS=${SLURM_CPUS_PER_TASK:-8}
+export HDF5_USE_FILE_LOCKING=FALSE   # NFS: HDF5 POSIX locks misbehave
+export AR_NAME=pnw3kmtail AR_DOMAIN=landfall AR_CELLS_PER_DEGREE=36
+export AR_START=2025-12-09T06:00:00 AR_HOURS=30
+export AR_RELAX_WIDTH=32 AR_BLEND_LENGTH=240000 AR_TERRAIN_SMOOTHING=4
+
+~/.juliaup/bin/julia --startup-file=no --project=. downscale.jl

@@ -9,7 +9,7 @@ using Dates: DateTime, Hour
 
 # Simulation window: the first landfall plus the second pulse of the Dec 8–12 AR.
 # Override the duration with AR_HOURS (e.g. AR_HOURS=96 to reach the event's full tail).
-start_date = DateTime(2025, 12, 7, 12)
+start_date = DateTime(get(ENV, "AR_START", "2025-12-07T12:00:00"))
 event_hours = parse(Int, get(ENV, "AR_HOURS", "72"))
 stop_date = start_date + Hour(event_hours)
 dates = (start_date, stop_date)
