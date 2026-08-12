@@ -22,7 +22,7 @@ ivt_north_series = FieldTimeSeries(joinpath(root, run_name * "_ivt.jld2"), "ivt_
 model_times = ivt_east_series.times
 λ, φ, _ = nodes(ivt_east_series[1])
 Nx, Ny = length(λ), length(φ)
-margin = 25
+margin = parse(Int, get(ENV, "AR_MASK_MARGIN", "25"))
 
 single_levels = ERA5HourlySingleLevel()
 era5_dates = filter(d -> start_date <= d <= stop_date, collect(viz_dates))
